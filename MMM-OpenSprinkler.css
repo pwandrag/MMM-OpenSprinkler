@@ -1,0 +1,72 @@
+.delay {
+	color: #FF0000;
+}
+
+.lineinfo {
+	text-align: right;
+	padding: 0px 5px 0px 5px;
+}
+
+.loading {
+  text-align: center;
+  font-size: 2rem;
+}
+.mqtt-title {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  margin-top: 0;
+  font-size: 1.5rem;
+  text-align: left;
+  border-color: #666;
+  border-bottom: 1px solid #666;
+  line-height: 2rem;
+}
+
+.mqtt-title .icon {
+  color: #ffffff;
+}
+
+.field {
+  text-align: left;
+  font-weight: bold;
+  padding-right:20px;
+}
+
+.value {
+  text-align: right;
+}
+
+.mattributes {
+  list-style: none;
+  margin: 0;
+  list-style-position: inside;
+  padding: 0;
+}
+
+.mattributes .mattribute {
+  text-align: left;
+	font-size: 1.2rem;
+  line-height: 2.0rem;
+  color: #fff;
+  opacity: 0.75;
+}
+.battery-level-ok {
+  color: lightgreen;
+}
+
+.battery-level-warning {
+  color: orange;
+}
+
+.battery-level-danger {
+  color: lightcoral;
+}
+
+.security-warning {
+  color: orange;
+}
+
+
+.mattributes .mattribute .name:after {
+  content: ': ';
+}
