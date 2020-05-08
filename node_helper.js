@@ -23,6 +23,7 @@ module.exports = NodeHelper.create({
 	getData: function() {
 		var self = this;
 		var myUrl = this.config.apiBase + this.config.apiKey + this.config.apiQuery;
+		
 		request({ url: myUrl, method: 'GET'
 		}, function (error, response, body) {
 

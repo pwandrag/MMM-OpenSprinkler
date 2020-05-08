@@ -23,11 +23,24 @@ Activate the module by adding it to the config.js file as shown below. Of course
 Will add detail, no options needed to run off demo (demo.opensprinkler.com)
 | Option | Details | Example |
 | --- | --- | --- |
+| osName | Sprinkler name to display | 'Sprinklers' |
+| osIP | Open Sprinkler IP can be an IP address or hostname | 'demo.opensprinkler.com' |
+| osPassword | Open Sprinkler (cleartext) password | 'opendoor' |
+| --- | --- | --- |
+| items | The rows of data you want the module to show. See list below. By default will show all available | '[ 'sun', 'raindelay', 'waterlevel', 'programrunning', 'sn' ]',
+
 
 ### Available fields
 
 | Field name | Data display |
 | --- | --- |
+| sun | Show sunrise and sunset |
+| raindelay | Display if rain delay is in place |
+| waterlevel | water level % based on weather |
+| programrunning | Display which program is running or On demand or Run-once |
+| sn | Open and queued stations |
+| stationlist | Display all stations |
+
 
 * Some fields (stations) are only enabled if the station is open (on)
 
@@ -46,9 +59,12 @@ Will add detail, no options needed to run off demo (demo.opensprinkler.com)
 modules: [
 		{
 			module:		'MMM-OpenSprinkler',
-			position:	'top_left',
+			position:	'top_right',
 			config: {
-			
+				osName: 'Castle Lawn Service',
+				osIP: 'demo.opensprinkler.com',
+				osPassword: 'opendoor',
+				items: [ 'sun', 'raindelay', 'waterlevel', 'programrunning', 'sn' ],
 			}
 		},
 ]

@@ -17,17 +17,21 @@ Module.register('MMM-OpenSprinkler', {
 		imperial: true,
 		batteryDanger: 30,
 		batteryWarning: 50,
-		apiBase: 'http://demo.opensprinkler.com/ja?pw=',
-		apiKey: 'a6d82bced638de3def1e9bbb4983225c', //md5hashed opendoor
-		apiQuery: '&sid=0&en=1&t=600',
-		items: [ 'sun', 'raindelay', 'waterlevel', 'programrunning', 'sn', 'programlist', 'programstatus' ],
+		osName: 'Sprinklers',
+		osIP: 'demo.opensprinkler.com',
+		osPassword: 'opendoor',
+//		items: [ 'sun', 'raindelay', 'waterlevel', 'programrunning', 'sn', 'stationlist'],
+//		items: [ 'sun'],
+		items: [ 'sun', 'raindelay', 'waterlevel', 'programrunning', 'sn'],
 	},
 	// Define required scripts.
 	getScripts: function() {
 		return [
+			'MMM-OS-Utilities.js',
 			'https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.11/lodash.min.js',
 			'https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js',
-			'moment.js'
+			'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/core.js',
+			'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/md5.js',
 			];
 	},
 	getStyles: function() {
@@ -37,24 +41,18 @@ Module.register('MMM-OpenSprinkler', {
 			];
 	},
 	start: function() {
-		Log.info('Starting module: ' + this.name);
+		Log.info('Starting OS module: ' + this.name);
 		this.loaded = false;
+		this.config.apiBase = 'http://' + this.config.osIP + '/ja?pw=';
+		this.config.apiKey = CryptoJS.MD5(this.config.osPassword).toString();//opendoor hash: a6d82bced638de3def1e9bbb4983225c
+		this.config.apiQuery = '&sid=0&en=1&t=600';
 		this.sendSocketNotification('CONFIG', this.config);
 	},
 	getDom: function() {
+
 		var wrapper = document.createElement("div");
 		if (!this.loaded) {
 			wrapper.innerHTML = this.translate('LOADING');
-			wrapper.className = "dimmed light small";
-			return wrapper;
-		}
-		if (this.config.apiKey === "") {
-			wrapper.innerHTML = "No Tesla Fi <i>apiKey</i> set in config file.";
-			wrapper.className = "dimmed light small";
-			return wrapper;
-		}
-		if (this.config.googleApiKey === "") {
-			wrapper.innerHTML = "No Google <i>api Key</i> set in config file.";
 			wrapper.className = "dimmed light small";
 			return wrapper;
 		}
@@ -66,88 +64,40 @@ Module.register('MMM-OpenSprinkler', {
 		var t = this.data;
 		var content = document.createElement("div");
 
-		const getProgramRunning = function(psps, pppd, pnstations) {
-			var i;
-			i=0;
-			for(i = 0; i < pnstations; i++) {
-//				return psps[i][0];
-				switch (psps[i][0]) {
-					case 0: //not here ignore
-						break;
-					case 254:
-						return 'Run once';
-					case 99:
-						return 'On demand';
-					default:
-					
-						//return 'index here';
-						//return psps[i][0];
-						//return pppd[0][5];
-						return pppd[psps[i][0]][5];
-				}
-			}
-			return 'Idle';
-		}
-
-		const getBatteryLevelClass = function(bl, warn, danger) {
-			if (bl < danger) {
-				return 'danger';
-			}
-			if (bl < warn) {
-				return 'warning';
-			}
-			if (bl >= warn) {
-				return 'ok';
-			}
-		}
-
-		var curstat = ["", "On", "In Queue"];
+//----------------------------------------------------------------------------------------
+//Start main page
+//----------------------------------------------------------------------------------------
 		content.innerHTML = "";
-		var table = `<h2 class="mqtt-title"><span class="zmdi zmdi-landscape zmdi-hc-1x icon"></span> Sprinklers`;
+		var table = `<h2 class="mqtt-title"><span class="zmdi zmdi-landscape zmdi-hc-1x icon"></span> ${this.config.osName}`;
 
 		if (t.settings.rd) {
-
-				var d = new Date(t.settings.rdst * 1000);
-
-				table += ` Rain delay until ${moment(d).calendar()}`;
+			var d = new Date(t.settings.rdst * 1000);
+			table += ` Rain delay until ${moment(d).calendar()}`;
 		}
 
-		
-		
 		table += `</h2>
 		<table class="small">
 		`;
 
 		for(field in this.config.items) {
-
+		Log.info('OS-PRJ: ' + this.config.items[field]);
 		switch (this.config.items[field]) {
 			case 'sun':
-				var srd = new Date(0,0,0,0, t.settings.sunrise,0,0);
-				var srh = srd.getHours();
-				var srm = "0" + srd.getMinutes();
-				var srmf = srm.substring(srm.length-2);
-
-				var ssd = new Date(0,0,0,0, t.settings.sunset,0,0);
-				var ssh = (ssd.getHours() - 12);
-				var ssm = "0" + ssd.getMinutes();
-				var ssmf = ssm.substring(ssm.length-2);
-				
 				table += `
 				   <tr>
 				      <td class="icon"><span class="zmdi zmdi-gas-station zmdi-hc-fw"></span></td>
 				      <td class="field">Sunrise / Sunset</td>
-				      <td class="value">${srh}:${srmf} AM / ${ssh}:${ssmf} PM</td>
+				      <td class="value">${getClearTime(t.settings.sunrise)} / ${getClearTime(t.settings.sunset)}</td>
 				   </tr>
 				`;
 			break;
 			case 'raindelay':
 				if(!t.settings.rd) { break; }
 				var d = new Date(t.settings.rdst * 1000);
-				
 				table += `
 				   <tr>
 				      <td class="icon"><span class="zmdi zmdi-gas-station zmdi-hc-fw"></span></td>
-				      <td class="field">Rain Delay: </td>
+				      <td class="field">Rain Delay</td>
 				      <td class="value">${d.toLocaleString()}</td>
 				   </tr>
 				`;
@@ -196,7 +146,7 @@ Module.register('MMM-OpenSprinkler', {
 							<tr>
 							<td class="icon"><span class="zmdi zmdi-gas-station zmdi-hc-fw"></span></td>
 							<td class="field">${(i+1)} - ${t.stations.snames[i]}</td>
-							<td class="value">${curstat[ssn]}</td>
+							<td class="value">${getStationStatus(ssn, t.settings.ps[i])}</td>
 							</tr>
 						`;
 					}
@@ -213,7 +163,7 @@ Module.register('MMM-OpenSprinkler', {
 							<tr>
 							<td class="icon"><span class="zmdi zmdi-gas-station zmdi-hc-fw"></span></td>
 							<td class="field">${(i+1)} - ${t.stations.snames[i]}</td>
-							<td class="value">${curstat[ssn]}</td>
+							<td class="value">${getStationStatus(ssn, t.settings.ps[i])}</td>
 							</tr>
 						`;
 					}
@@ -222,8 +172,7 @@ Module.register('MMM-OpenSprinkler', {
 			
 			case 'programlist':
 				var i;
-				for(i = 0; i < t.programs.nprogs; i++) {	
-					
+				for(i = 0; i < t.programs.nprogs; i++) {
 					table += `
 						<tr>
 						<td class="icon"><span class="zmdi zmdi-gas-station zmdi-hc-fw"></span></td>
@@ -236,181 +185,17 @@ Module.register('MMM-OpenSprinkler', {
 			
 			case 'stationlist':
 				var i;
-				for(i = 0; i < t.status.nstations; i++) {	
-					
+				for(i = 0; i < t.status.nstations; i++) {
 						table += `
 							<tr>
 							<td class="icon"><span class="zmdi zmdi-gas-station zmdi-hc-fw"></span></td>
 							<td class="field">${(i+1)} - ${t.stations.snames[i]}</td>
-							<td class="value">${curstat[t.status.sn[i]]}</td>
+							<td class="value">${getStationStatus(t.status.sn[i], t.settings.ps[i])}</td>
 							</tr>
 						`;
 				}
 			break;
 
-			case 'battery':
-				table += `
-				   <tr>
-				      <td class="icon"><span class="zmdi zmdi-battery zmdi-hc-fw"></span></td>
-				      <td class="field">Battery</td>
-				      <td class="value">
-				         <span class="battery-level-${getBatteryLevelClass(t.usable_battery_level, this.config.batteryWarning, this.config.batteryDanger)}">${t.usable_battery_level}%</span>
-                                         /
-                                         <span class="battery-level-${getBatteryLevelClass(t.charge_limit_soc, this.config.batteryWarning, this.config.batteryDanger)}">${t.charge_limit_soc}%</span>
-				      </td>
-				   </tr>
-				`;
-			break;
-
-			case 'batteryex':
-
-				if(t.charging_state!="Disconnected") {
-
-				table += `
-				   <tr>
-				      <td class="icon"><span class="zmdi zmdi-input-power zmdi-hc-fw"></span></td>
-				      <td class="field">Connected</td>
-				      <td class="value">${t.charging_state}</td>
-				   </tr>
-				`;
-
-				} else {
-
-				table += `
-				   <tr>
-				      <td class="icon"><span class="zmdi zmdi-battery zmdi-hc-fw"></span></td>
-				      <td class="field"><span class="battery-level-${getBatteryLevelClass(t.usable_battery_level, this.config.batteryWarning, this.config.batteryDanger)}">Disconnected</span></td>
-				      <td class="value">
-							${parseFloat(t.est_battery_range).toFixed(0)}&nbsp;miles&nbsp;
-				         <span class="battery-level-${getBatteryLevelClass(t.usable_battery_level, this.config.batteryWarning, this.config.batteryDanger)}">${t.usable_battery_level}%</span>
-                                         /
-                                         <span class="battery-level-${getBatteryLevelClass(t.charge_limit_soc, this.config.batteryWarning, this.config.batteryDanger)}">${t.charge_limit_soc}%</span>
-				      </td>
-				   </tr>
-				`;
-			}
-			break;
-
-			case 'range':
-				table += `
-				   <tr>
-				      <td class="icon"><span class="zmdi zmdi-gas-station zmdi-hc-fw"></span></td>
-				      <td class="field">Range</td>
-				      <td class="value">${t.ideal_battery_range} miles</td>
-				   </tr>
-				`;
-			break;
-
-			case 'range-estimated':
-				table += `
-				   <tr>
-				      <td class="icon"><span class="zmdi zmdi-gas-station zmdi-hc-fw"></span></td>
-				      <td class="field">Range</td>
-				      <td class="value">${t.est_battery_range} miles (estimated)</td>
-				   </tr>
-				`;
-			break;
-
-			case 'charge-time':
-				if(!t.charging_state || t.time_to_full_charge==0) { break; }
-
-				table += `
-				   <tr>
-				      <td class="icon"><span class="zmdi zmdi-battery-flash zmdi-hc-fw"></span></td>
-				      <td class="field">Charging</td>
-				      <td class="value">${moment().add(t.time_to_full_charge, "hours").fromNow()}</td>
-				   </tr>
-				`;
-			break;
-
-			case 'charge-added':
-				if(t.charging_state=="Disconnected") { break; }
-
-				table += `
-				   <tr>
-				      <td class="icon"><span class="zmdi zmdi-flash zmdi-hc-fw"></span></td>
-				      <td class="field">Charge Added</td>
-				      <td class="value">${t.charge_energy_added} kWh</td>
-				   </tr>
-				`;
-
-			break;
-
-			case 'locked':
-				if(t.locked) {
-
-				table += `
-				   <tr>
-				      <td class="icon"><span class="zmdi zmdi-lock-outline zmdi-hc-fw"></span></td>
-				      <td class="field" colspan="2">Locked</td>
-				   </tr>
-				`;
-
-				} else {
-
-				table += `
-				   <tr>
-				      <td class="icon"><span class="zmdi zmdi-lock-open zmdi-hc-fw"></span></td>
-				      <td class="field" colspan="2">Unlocked</td>
-				   </tr>
-				`;
-
-				}
-			break;
-
-			case 'odometer':
-				table += `
-				   <tr>
-				      <td class="icon"><span class="zmdi zmdi-globe zmdi-hc-fw"></span></td>
-				      <td class="field">Odometer</td>
-				      <td class="value">${parseFloat(t.odometer).toFixed(1)} miles</td>
-				   </tr>
-				`;
-			break;
-
-			case 'temperature':
-				if(!t.outside_temp || !t.inside_temp) { break; }
-
-				table += `
-				   <tr>
-				      <td class="icon"><span class="zmdi zmdi-sun zmdi-hc-fw"></span></td>
-				      <td class="field">Temperature</td>
-				      <td class="value">${t.outside_temp}&deg;C / ${t.inside_temp}&deg;C</td>
-				   </tr>
-				`;
-			break;
-
-			case 'power-connected':
-				if(t.charging_state!="Disconnected") {
-
-				table += `
-				   <tr>
-				      <td class="icon"><span class="zmdi zmdi-input-power zmdi-hc-fw"></span></td>
-				      <td class="field">Connected</td>
-				      <td class="value">${t.charging_state}</td>
-				   </tr>
-				`;
-
-				} else {
-
-				table += `
-				   <tr>
-				      <td class="icon"><span class="zmdi zmdi-input-power zmdi-hc-fw"></span></td>
-				      <td class="field" colspan="2">Disconnected</td>
-				   </tr>
-				`;
-
-				}
-			break;
-
-			case 'data-time':
-				table += `
-				   <tr>
-				      <td class="icon"><span class="zmdi zmdi-time zmdi-hc-fw"></span></td>
-				      <td class="field" colspan="2">${moment(t.Date).fromNow()}</td>
-				   </tr>
-				`;
-			break;
 		} // switch
 
 		} // end foreach loop of items
@@ -433,7 +218,7 @@ Module.register('MMM-OpenSprinkler', {
 	},
 	// tFi(data)
 	// Uses the received data to set the various values.
-	//argument data object - info from teslfi.com
+	//argument data object - info from opensprinkler.com
 	tFi: function(data) {
 		if (!data) {
 			// Did not receive usable new data.
