@@ -80,7 +80,7 @@ Module.register('MMM-OpenSprinkler', {
 		`;
 
 		for(field in this.config.items) {
-		Log.info('OS-PRJ: ' + this.config.items[field]);
+		//Log.info('OS-PRJ: ' + this.config.items[field]);
 		switch (this.config.items[field]) {
 			case 'sun':
 				table += `
@@ -205,6 +205,7 @@ Module.register('MMM-OpenSprinkler', {
 		wrapper.innerHTML = table;
 		wrapper.className = "light small";
 		wrapper.appendChild(content);
+		
 		return wrapper;
 	},
 	socketNotificationReceived: function(notification, payload) {
