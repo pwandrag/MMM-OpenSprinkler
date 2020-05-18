@@ -36,8 +36,12 @@
   text-align: right;
 }
 
-.updateinfo {
+.updateinforight {
   text-align: right;
+  font-size:small;
+}
+.updateinfoleft {
+  text-align: left;
   font-size:small;
 }
 

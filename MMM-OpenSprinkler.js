@@ -74,8 +74,8 @@ Module.register('MMM-OpenSprinkler', {
 
 		if (t.settings.rd) {
 			table += ` Rain Delayed Until ${getMomentFromEpoch(t.settings.devt, t.settings.rdst)}`;
-		} else {
-			table += ` <span class="updateinfo"> Last Run ${getMomentFromEpoch(t.settings.devt, t.settings.lrun[3])}</span>`;
+//		} else {
+//			table += ` <span class="updateinfo"> Last Run ${getMomentFromEpoch(t.settings.devt, t.settings.lrun[3])}</span>`;
 		}
 
 		table += `</h2>
@@ -236,8 +236,8 @@ Module.register('MMM-OpenSprinkler', {
 		} // end foreach loop of items
 
 
-//		table += `<tr><td colspan="3" class="updateinfo">Last Run ${getMomentFromEpoch(t.settings.devt, t.settings.lrun[3], "Never")}</td></tr>`;
-		table += `<tr><td colspan="3" class="updateinfo">Last Weather Update ${getMomentFromEpoch(t.settings.devt, t.settings.lswc, "Never")}</td></tr>`;
+		table += `<tr><td colspan="2" class="updateinfoleft">Last Run ${getMomentFromEpoch(t.settings.devt, t.settings.lrun[3], "Never")}</td>`;
+		table += `<td colspan="2" class="updateinforight">Last Weather ${getMomentFromEpoch(t.settings.devt, t.settings.lswc, "Never")}</td></tr>`;
 		table += "</table>";
 
 
