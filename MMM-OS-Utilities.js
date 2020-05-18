@@ -1,14 +1,41 @@
 //MMM-OS-Utilities.js
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+function getLocaleFromEpoch(epochDevTime, epochTime, defaultNull = "") {
 
+	if (epochTime) {
+		var myLocale = getDateFromEpoch(epochDevTime, epochTime);
+		return myLocale.toLocaleString();
+	} else {
+		return defaultNull;
+	}
+}
 //----------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------
+function getMomentFromEpoch(epochDevTime, epochTime, defaultNull = "") {
 
+	if (epochTime) {
+		var myMoment = getDateFromEpoch(epochDevTime, epochTime);
+		return moment(myMoment).calendar();
+	} else {
+		return defaultNull;
+	}
+}
 //----------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------
-
+function getDateFromEpoch(epochDevTime, epochTime) {
+	//OS poorly implemented epoch, uses local time coded as GMT-0
+	const now = new Date();
+	var correctEpoch = Math.round(now.getTime() / 1000) + (epochTime - epochDevTime);
+	var myDate = new Date(correctEpoch * 1000);
+	return myDate;
+}
 //----------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------
-
 function secondsCountdownOld(futureSeconds) {
   //var myVar = setInterval(myTimer(), 1000);
   //var content = document.createElement("div");

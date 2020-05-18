@@ -14,15 +14,14 @@ Module.register('MMM-OpenSprinkler', {
 		lang: config.language,
 		initialLoadDelay: 0, // 0 seconds delay
 		retryDelay: 2500,
+		devt: 0,
 		imperial: true,
-		batteryDanger: 30,
-		batteryWarning: 50,
 		osName: 'Sprinklers',
 		osIP: 'demo.opensprinkler.com',
 		osPassword: 'opendoor',
 //		items: [ 'sun', 'raindelay', 'waterlevel', 'programrunning', 'sn', 'stationlist'],
-//		items: [ 'sun'],
-		items: [ 'sun', 'raindelay', 'waterlevel', 'programrunning', 'sn'],
+//		items: [ 'debug'],
+		items: [ 'sun', 'raindelay', 'waterlevel', 'programrunning', 'sn' ],
 	},
 	// Define required scripts.
 	getScripts: function() {
@@ -42,6 +41,8 @@ Module.register('MMM-OpenSprinkler', {
 	},
 	start: function() {
 		Log.info('Starting OS module: ' + this.name);
+//		this.config.lang = this.config.lang || config.language; //automatically overrides and sets language :)      
+//		this.config.units = this.config.units || config.units;
 		this.loaded = false;
 		this.config.apiBase = 'http://' + this.config.osIP + '/ja?pw=';
 		this.config.apiKey = CryptoJS.MD5(this.config.osPassword).toString();//opendoor hash: a6d82bced638de3def1e9bbb4983225c
@@ -49,7 +50,9 @@ Module.register('MMM-OpenSprinkler', {
 		this.sendSocketNotification('CONFIG', this.config);
 	},
 	getDom: function() {
-
+//----------------------------------------------------------------------------------------
+//Get OS JSON Data into t
+//----------------------------------------------------------------------------------------
 		var wrapper = document.createElement("div");
 		if (!this.loaded) {
 			wrapper.innerHTML = this.translate('LOADING');
@@ -63,7 +66,6 @@ Module.register('MMM-OpenSprinkler', {
 		}
 		var t = this.data;
 		var content = document.createElement("div");
-
 //----------------------------------------------------------------------------------------
 //Start main page
 //----------------------------------------------------------------------------------------
@@ -71,8 +73,9 @@ Module.register('MMM-OpenSprinkler', {
 		var table = `<h2 class="mqtt-title"><span class="zmdi zmdi-landscape zmdi-hc-1x icon"></span> ${this.config.osName}`;
 
 		if (t.settings.rd) {
-			var d = new Date(t.settings.rdst * 1000);
-			table += ` Rain delay until ${moment(d).calendar()}`;
+			table += ` Rain Delayed Until ${getMomentFromEpoch(t.settings.devt, t.settings.rdst)}`;
+		} else {
+			table += ` <span class="updateinfo"> Last Run ${getMomentFromEpoch(t.settings.devt, t.settings.lrun[3])}</span>`;
 		}
 
 		table += `</h2>
@@ -82,6 +85,27 @@ Module.register('MMM-OpenSprinkler', {
 		for(field in this.config.items) {
 		//Log.info('OS-PRJ: ' + this.config.items[field]);
 		switch (this.config.items[field]) {
+			case 'debug':
+				table += `
+					<tr><td></td><td colspan:"2">--- DEBUG BEGIN ---</td></td></tr>
+					<tr><td></td><td class="field"> Device Epoch</td><td class="value">${t.settings.devt}</td></tr>
+					<tr><td></td><td class="field">Device Locale</td><td class="value">${getLocaleFromEpoch(t.settings.devt, t.settings.devt)}</td></tr>
+					<tr><td></td><td class="field">Device Moment</td><td class="value">${getMomentFromEpoch(t.settings.devt, t.settings.devt)}</td></tr>
+					<tr><td></td><td class="field">Device Time</td><td class="value">${getDateFromEpoch(t.settings.devt, t.settings.devt)}</td></tr>
+					<tr><td colspan:"3"></td></td></tr>
+					<tr><td colspan:"3"></td></td></tr>
+					
+					<tr><td></td><td class="field">Last Weather Call</td><td class="value">${getLocaleFromEpoch(t.settings.devt, t.settings.lwc)}</td></tr>
+					<tr><td></td><td class="field">Last Weather Response</td><td class="value">${getLocaleFromEpoch(t.settings.devt, t.settings.lswc)}</td></tr>
+					<tr><td></td><td class="field">Last Device Reboot</td><td class="value">${getMomentFromEpoch(t.settings.devt, t.settings.lupt)}</td></tr>
+					<tr><td></td><td class="field">Last Run</td><td class="value">${getMomentFromEpoch(t.settings.devt, t.settings.lrun[3])}</td></tr>
+					<tr><td colspan:"3"></td></td></tr>
+					<tr><td></td><td class="field">Rain Delay</td><td class="value">${getMomentFromEpoch(t.settings.devt, t.settings.rdst, "None")}</td></tr>
+					<tr><td></td><td class="field">Rain Delay</td><td class="value">${getLocaleFromEpoch(t.settings.devt, t.settings.rdst)}</td></tr>
+					<tr><td></td><td class="field">Rain Delay</td><td class="value">${getLocaleFromEpoch(t.settings.devt, t.settings.rdst)}</td></tr>
+					<tr><td></td><td colspan:"2">--- DEBUG END ---</td></td></tr>
+				`;
+			break;
 			case 'sun':
 				table += `
 				   <tr>
@@ -91,14 +115,25 @@ Module.register('MMM-OpenSprinkler', {
 				   </tr>
 				`;
 			break;
+			case 'lastrun':
+				table += `
+				   <tr>
+						<td class="icon"><span class="zmdi zmdi-gas-station zmdi-hc-fw"></span></td>
+						<td class="field">Last Run</td>
+						<td class="value">${getMomentFromEpoch(t.settings.devt, t.settings.lrun[3], "Never")}</td></tr>
+				   </tr>
+				`;
+			break;
 			case 'raindelay':
+			//Rdst”: 1450380976 is the stop time. It’s in epoch format. There are converters in excel or 
+			//you can subtract the value in “devt” from it. The result will be the number of seconds left in the current delay (devt = the current time).
+			
 				if(!t.settings.rd) { break; }
-				var d = new Date(t.settings.rdst * 1000);
 				table += `
 				   <tr>
 				      <td class="icon"><span class="zmdi zmdi-gas-station zmdi-hc-fw"></span></td>
-				      <td class="field">Rain Delay</td>
-				      <td class="value">${d.toLocaleString()}</td>
+				      <td class="field">Rain Delayed Until</td>
+				      <td class="value">${getMomentFromEpoch(t.settings.devt, t.settings.rdst)}</td>
 				   </tr>
 				`;
 			break;
@@ -200,7 +235,11 @@ Module.register('MMM-OpenSprinkler', {
 
 		} // end foreach loop of items
 
+
+//		table += `<tr><td colspan="3" class="updateinfo">Last Run ${getMomentFromEpoch(t.settings.devt, t.settings.lrun[3], "Never")}</td></tr>`;
+		table += `<tr><td colspan="3" class="updateinfo">Last Weather Update ${getMomentFromEpoch(t.settings.devt, t.settings.lswc, "Never")}</td></tr>`;
 		table += "</table>";
+
 
 		wrapper.innerHTML = table;
 		wrapper.className = "light small";

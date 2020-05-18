@@ -40,6 +40,9 @@ Will add detail, no options needed to run off demo (demo.opensprinkler.com)
 | programrunning | Display which program is running or On demand or Run-once |
 | sn | Open and queued stations |
 | stationlist | Display all stations |
+| lastrun | Last run record |
+
+
 
 
 * Some fields (stations) are only enabled if the station is open (on)
