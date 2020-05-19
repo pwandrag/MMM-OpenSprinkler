@@ -5,13 +5,15 @@
  *
  * Originally By Adrian Chrysanthou
  * Updated by John Cohron
- *
+ * Updates by Paul Wandrag
+ * 	- Switched to node-fetch library
  * MIT Licensed.
  */
 
+const fetch = (...args) =>
+  import("node-fetch").then(({ default: fetch }) => fetch(...args));
 const NodeHelper = require('node_helper');
-var request = require('request');
-var moment = require('moment');
+const moment = require('moment');
 
 module.exports = NodeHelper.create({
 
@@ -20,15 +22,17 @@ module.exports = NodeHelper.create({
 		this.config = null;
 	},
 
-	getData: function() {
+	getData: async function() {
 		var self = this;
 		var myUrl = this.config.apiBase + this.config.apiKey + this.config.apiQuery;
 		
-		request({ url: myUrl, method: 'GET'
-		}, function (error, response, body) {
-
-		self.sendSocketNotification("DATA", body);
-		});
+		try {
+			const response = await fetch(myUrl);
+			const body = await response.text();
+			self.sendSocketNotification("DATA", body);
+		} catch (error) {
+			console.error("Fetching data failed:", error);
+		}
 
 		setTimeout(function() { self.getData(); }, this.config.refreshInterval);
 	},
