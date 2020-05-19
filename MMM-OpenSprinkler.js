@@ -109,7 +109,7 @@ Module.register('MMM-OpenSprinkler', {
 			case 'sun':
 				table += `
 				   <tr>
-				      <td class="icon"><span class="zmdi zmdi-gas-station zmdi-hc-fw"></span></td>
+				      <td class="icon"><span class="zmdi zmdi-sun zmdi-hc-fw"></span></td>
 				      <td class="field">Sunrise / Sunset</td>
 				      <td class="value">${getClearTime(t.settings.sunrise)} / ${getClearTime(t.settings.sunset)}</td>
 				   </tr>
@@ -131,7 +131,7 @@ Module.register('MMM-OpenSprinkler', {
 				if(!t.settings.rd) { break; }
 				table += `
 				   <tr>
-				      <td class="icon"><span class="zmdi zmdi-gas-station zmdi-hc-fw"></span></td>
+				      <td class="icon"><span class="zmdi zmdi-grain zmdi-hc-fw"></span></td>
 				      <td class="field">Rain Delayed Until</td>
 				      <td class="value">${getMomentFromEpoch(t.settings.devt, t.settings.rdst)}</td>
 				   </tr>
@@ -141,7 +141,7 @@ Module.register('MMM-OpenSprinkler', {
 			case 'waterlevel':
 				table += `
 				   <tr>
-				      <td class="icon"><span class="zmdi zmdi-gas-station zmdi-hc-fw"></span></td>
+				      <td class="icon"><span class="zmdi zmdi-grain zmdi-hc-fw"></span></td>
 				      <td class="field">Water Level</td>
 				      <td class="value">${t.options.wl}%</td>
 				   </tr>
@@ -160,13 +160,12 @@ Module.register('MMM-OpenSprinkler', {
 			case 'programrunning':
 				var progrun = "";
 				progrun = getProgramRunning(t.settings.ps,t.programs.pd, t.status.nstations);
-				table += `
-				   <tr>
-				      <td class="icon"><span class="zmdi zmdi-gas-station zmdi-hc-fw"></span></td>
-				      <td class="field">Program Running</td>
-				      <td class="value">${progrun}</td>
-				   </tr>
-				`;
+				if (progrun == "Idle") {
+					table += `<tr><td class="icon"><span class="zmdi zmdi-8tracks zmdi-hc-fw"></span></td>`;
+				} else {
+					table += `<tr><td class="icon"><span class="zmdi zmdi-8tracks zmdi-hc-spin"></span></td>`;
+				}
+				table += `<td class="field">Program Running</td><td class="value">${progrun}</td></tr>`;
 			break;
 			
 			case 'sn':
@@ -179,7 +178,7 @@ Module.register('MMM-OpenSprinkler', {
 					if(ssn) {
 						table += `
 							<tr>
-							<td class="icon"><span class="zmdi zmdi-gas-station zmdi-hc-fw"></span></td>
+							<td class="icon"><span class="zmdi zmdi-spinner zmdi-hc-spin"></span></td>
 							<td class="field">${(i+1)} - ${t.stations.snames[i]}</td>
 							<td class="value">${getStationStatus(ssn, t.settings.ps[i])}</td>
 							</tr>
@@ -196,7 +195,7 @@ Module.register('MMM-OpenSprinkler', {
 					if(ssn==2) {
 						table += `
 							<tr>
-							<td class="icon"><span class="zmdi zmdi-gas-station zmdi-hc-fw"></span></td>
+							<td class="icon"><span class="zmdi zmdi-spinner zmdi-hc-fw"></span></td>
 							<td class="field">${(i+1)} - ${t.stations.snames[i]}</td>
 							<td class="value">${getStationStatus(ssn, t.settings.ps[i])}</td>
 							</tr>
@@ -235,8 +234,12 @@ Module.register('MMM-OpenSprinkler', {
 
 		} // end foreach loop of items
 
-
-		table += `<tr><td colspan="2" class="updateinfoleft">Last Run ${getMomentFromEpoch(t.settings.devt, t.settings.lrun[3], "Never")}</td>`;
+		if (t.settings.lrun[3]) {
+			table += `<tr><td colspan="2" class="updateinfoleft">Last Run ${getMomentFromEpoch(t.settings.devt, t.settings.lrun[3], "Never")}</td>`;
+		} else {
+			//look for last reboot
+			table += `<tr><td colspan="2" class="updateinfoleft">Last Reboot ${getMomentFromEpoch(t.settings.devt, t.settings.lupt, "Never")}</td>`;
+		}
 		table += `<td colspan="2" class="updateinforight">Last Weather ${getMomentFromEpoch(t.settings.devt, t.settings.lswc, "Never")}</td></tr>`;
 		table += "</table>";
 
