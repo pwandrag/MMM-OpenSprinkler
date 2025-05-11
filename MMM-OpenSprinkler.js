@@ -71,7 +71,7 @@ Module.register('MMM-OpenSprinkler', {
 //Start main page
 //----------------------------------------------------------------------------------------
 		content.innerHTML = "";
-		var table = `<h2 class="mqtt-title"><span class="zmdi zmdi-landscape zmdi-hc-1x icon"></span> ${this.config.osName}`;
+		var table = `<h2 class="mqtt-title"><span class="zmdi zmdi-flower-alt zmdi-hc-1x icon"></span> ${this.config.osName}`;
 
 		if (t.settings.rd) {
 			table += ` Rain Delayed Until ${getMomentFromEpoch(t.settings.devt, t.settings.rdst)}`;
